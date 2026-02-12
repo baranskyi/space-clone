@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Share2, Code2, Check, Copy, Link2 } from "lucide-react";
+import { Code2, Check, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -47,15 +47,19 @@ export function ShareActions({ worldId, title, className }: ShareActionsProps) {
     }
 
     /* Fallback: copy link */
-    await navigator.clipboard.writeText(shareUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch { /* clipboard not available */ }
   }, [shareUrl, title]);
 
   const handleCopyEmbed = useCallback(async () => {
-    await navigator.clipboard.writeText(embedCode);
-    setCopiedEmbed(true);
-    setTimeout(() => setCopiedEmbed(false), 2000);
+    try {
+      await navigator.clipboard.writeText(embedCode);
+      setCopiedEmbed(true);
+      setTimeout(() => setCopiedEmbed(false), 2000);
+    } catch { /* clipboard not available */ }
   }, [embedCode]);
 
   return (

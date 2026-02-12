@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { WorldCard } from "@/components/gallery/world-card";
 import { EmptyState } from "@/components/gallery/empty-state";
@@ -12,32 +12,42 @@ export default function GalleryPage() {
   const [worlds, setWorlds] = useState<WorldRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchWorlds = useCallback(async () => {
-    try {
-      const res = await fetch("/api/worlds");
-      if (res.ok) {
-        const data = await res.json();
-        setWorlds(data.worlds);
-      }
-    } catch {
-      // Silently fail — show empty state
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchWorlds();
-  }, [fetchWorlds]);
+    let mounted = true;
+    async function load() {
+      try {
+        const res = await fetch("/api/worlds");
+        if (res.ok && mounted) {
+          const data = await res.json();
+          setWorlds(data.worlds);
+        }
+      } catch {
+        // Show empty state on error
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   // Poll for generating worlds
   useEffect(() => {
     const generating = worlds.some((w) => w.status === "generating" || w.status === "pending");
     if (!generating) return;
 
-    const interval = setInterval(fetchWorlds, 15000);
-    return () => clearInterval(interval);
-  }, [worlds, fetchWorlds]);
+    let mounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/worlds");
+        if (res.ok && mounted) {
+          const data = await res.json();
+          setWorlds(data.worlds);
+        }
+      } catch { /* retry next interval */ }
+    }, 15_000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, [worlds]);
 
   return (
     <div className="relative min-h-dvh bg-background safe-top safe-bottom">

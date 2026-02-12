@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0a0f1a"/>
+      <stop offset="100%" stop-color="#060a12"/>
+    </linearGradient>
+    <linearGradient id="text-grad" x1="300" y1="250" x2="900" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="900" cy="200" r="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="300" cy="450" r="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="900" cy="200" r="300" fill="url(#glow1)"/>
+  <circle cx="300" cy="450" r="250" fill="url(#glow2)"/>
+
+  <!-- Orbit rings -->
+  <circle cx="850" cy="280" r="120" stroke="#22d3ee" stroke-width="1" fill="none" opacity="0.2"/>
+  <circle cx="850" cy="280" r="80" stroke="#6366f1" stroke-width="0.8" fill="none" opacity="0.15"/>
+  <circle cx="850" cy="160" r="5" fill="#22d3ee" opacity="0.8"/>
+
+  <!-- Title -->
+  <text x="120" y="290" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="800" fill="url(#text-grad)">Space Clone</text>
+
+  <!-- Subtitle -->
+  <text x="120" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#94a3b8" font-weight="400">Clone any space into a navigable 3D world</text>
+
+  <!-- Features -->
+  <text x="120" y="430" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#64748b">16 Photos  ·  360° Panorama  ·  3D World</text>
+</svg>

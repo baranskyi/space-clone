@@ -47,9 +47,12 @@ export async function POST(request: Request) {
     );
 
     // 2. Download panorama from Supabase and upload to World Labs
+    if (!session.panorama_storage_path) {
+      throw new Error("Panorama not stitched yet");
+    }
     const { data: panoramaBlob } = await supabase.storage
       .from("panoramas")
-      .download(session.panorama_storage_path!);
+      .download(session.panorama_storage_path);
 
     if (!panoramaBlob) {
       throw new Error("Failed to download panorama from storage");
@@ -98,9 +101,7 @@ export async function POST(request: Request) {
       .update({ status: "failed" })
       .eq("id", sessionId);
 
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Generation failed" },
-      { status: 500 }
-    );
+    console.error("[generate]", err);
+    return NextResponse.json({ error: "Generation failed" }, { status: 500 });
   }
 }

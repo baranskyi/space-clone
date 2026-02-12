@@ -1,9 +1,16 @@
+// SERVER-ONLY — do not import in client components
+import "server-only";
+
 const API_BASE = "https://api.worldlabs.ai/marble/v1";
 
 function headers() {
+  const apiKey = process.env.WORLDLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error("WORLDLABS_API_KEY is not configured");
+  }
   return {
     "Content-Type": "application/json",
-    "WLT-Api-Key": process.env.WORLDLABS_API_KEY!,
+    "WLT-Api-Key": apiKey,
   };
 }
 

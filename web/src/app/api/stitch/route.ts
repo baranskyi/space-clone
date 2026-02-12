@@ -56,16 +56,20 @@ export async function POST(request: Request) {
       }
     }
 
-    // Call Python stitch service
+    // Call Python stitch service with timeout
     const stitchUrl = process.env.STITCH_SERVICE_URL || "http://localhost:8000";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000); // 2min timeout
+
     const stitchResponse = await fetch(`${stitchUrl}/stitch`, {
       method: "POST",
       body: formData,
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (!stitchResponse.ok) {
-      const errorText = await stitchResponse.text();
-      throw new Error(`Stitch service error: ${errorText}`);
+      throw new Error("Stitch service returned an error");
     }
 
     // Get panorama blob from stitch service
@@ -111,9 +115,10 @@ export async function POST(request: Request) {
       .update({ status: "failed" })
       .eq("id", sessionId);
 
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Stitching failed" },
-      { status: 500 }
-    );
+    console.error("[stitch]", err);
+    const message = err instanceof Error && err.name === "AbortError"
+      ? "Stitch service timeout"
+      : "Stitching failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

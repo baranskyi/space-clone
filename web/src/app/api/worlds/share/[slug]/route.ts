@@ -7,6 +7,12 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+
+  // Validate slug format (nanoid generates alphanumeric + _-)
+  if (!/^[a-zA-Z0-9_-]{5,21}$/.test(slug)) {
+    return NextResponse.json({ error: "Invalid share link" }, { status: 400 });
+  }
+
   const supabase = createAdminClient();
 
   const { data: world, error } = await supabase

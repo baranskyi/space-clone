@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { nanoid } from "nanoid";
 
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB per file
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,6 +21,25 @@ export async function POST(request: Request) {
       { error: `Expected 2-20 photos, got ${files.length}` },
       { status: 400 }
     );
+  }
+
+  // Validate each file
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: `File ${i}: invalid type "${file.type}". Allowed: JPEG, PNG, WebP` },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File ${i}: too large (${Math.round(file.size / 1024 / 1024)}MB). Max 15MB` },
+        { status: 400 }
+      );
+    }
   }
 
   const sessionId = nanoid(12);
@@ -44,14 +66,14 @@ export async function POST(request: Request) {
 
   await Promise.all(
     files.map(async (file, i) => {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
       const path = `${storagePath}/${String(i).padStart(2, "0")}.${ext}`;
       const buffer = await file.arrayBuffer();
 
       const { error } = await supabase.storage
         .from("photos")
         .upload(path, buffer, {
-          contentType: file.type || "image/jpeg",
+          contentType: file.type,
           upsert: false,
         });
 
@@ -74,7 +96,7 @@ export async function POST(request: Request) {
   // Mark session as uploaded
   await supabase
     .from("capture_sessions")
-    .update({ status: "uploading" })
+    .update({ status: "uploaded" })
     .eq("id", session.id);
 
   return NextResponse.json({ sessionId: session.id, storagePath });
