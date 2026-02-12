@@ -8,75 +8,7 @@ import { GenerationProgress } from "@/components/viewer/generation-progress";
 import { ShareActions } from "@/components/share/share-actions";
 import { ArrowLeft, ExternalLink, Eye } from "lucide-react";
 import type { WorldRecord } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
-/**
- * World Viewer Screen
- * ===================
- * Full-screen immersive viewer for a generated 3D world.
- *
- * States:
- * 1. Loading -- fetching world data from Supabase
- * 2. Generating -- world is being processed by World Labs (~3-5 min)
- *    Shows GenerationProgress with percentage and status text
- * 3. Ready -- world is viewable, shows iframe + bottom sheet
- * 4. Failed -- generation failed, shows error + retry option
- *
- * Layout:
- * - Full viewport iframe (no chrome) when ready
- * - Back button floats top-left with glassmorphism
- * - BottomSheet peeks from bottom with title, actions, share
- * - Entire screen is edge-to-edge for maximum immersion
- *
- * The iframe points to marble.worldlabs.ai which provides
- * its own navigation controls (WASD, mouse look, etc.)
- */
-
-/* ==========================================================================
-   Mock data -- replace with Supabase fetch by world ID
-   ========================================================================== */
-const MOCK_WORLDS: Record<string, WorldRecord> = {
-  "w-1": {
-    id: "w-1",
-    user_id: "u-1",
-    session_id: "s-1",
-    world_labs_id: "wl-1",
-    operation_id: null,
-    status: "ready",
-    title: "Living Room",
-    description: "My apartment living room captured on a sunny afternoon. A cozy space with natural light streaming through large windows.",
-    viewer_url: "https://marble.worldlabs.ai/viewer/abc123",
-    thumbnail_url: null,
-    panorama_url: null,
-    splat_url: null,
-    mesh_url: null,
-    is_public: true,
-    share_slug: "living-room-abc",
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    updated_at: new Date(Date.now() - 3600000).toISOString(),
-  },
-  "w-2": {
-    id: "w-2",
-    user_id: "u-1",
-    session_id: "s-2",
-    world_labs_id: null,
-    operation_id: "op-2",
-    status: "generating",
-    title: "Office Space",
-    description: "Coworking space downtown with open plan layout.",
-    viewer_url: null,
-    thumbnail_url: null,
-    panorama_url: null,
-    splat_url: null,
-    mesh_url: null,
-    is_public: false,
-    share_slug: null,
-    created_at: new Date(Date.now() - 300000).toISOString(),
-    updated_at: new Date(Date.now() - 60000).toISOString(),
-  },
-};
-
-/** Simulated generation status messages */
 const GENERATION_STAGES = [
   "Uploading panorama...",
   "Analyzing scene geometry...",
@@ -92,75 +24,68 @@ export default function WorldViewerPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
-  /* World data state */
   const [world, setWorld] = useState<WorldRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [genPercent, setGenPercent] = useState<number | null>(null);
+  const [genStageText, setGenStageText] = useState("Processing...");
 
-  /* Generation progress simulation */
-  const [genPercent, setGenPercent] = useState<number>(0);
-  const [genStage, setGenStage] = useState(0);
-
-  /* Fetch world data */
-  useEffect(() => {
-    /* In production: fetch from Supabase by params.id */
-    const mockWorld = MOCK_WORLDS[params.id] ?? {
-      id: params.id,
-      user_id: "u-1",
-      session_id: null,
-      world_labs_id: "wl-demo",
-      operation_id: null,
-      status: "ready" as const,
-      title: `World ${params.id}`,
-      description: "A generated 3D space",
-      viewer_url: "https://marble.worldlabs.ai/viewer/demo",
-      thumbnail_url: null,
-      panorama_url: null,
-      splat_url: null,
-      mesh_url: null,
-      is_public: true,
-      share_slug: `world-${params.id}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    setTimeout(() => {
-      setWorld(mockWorld);
+  // Fetch world data
+  const fetchWorld = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/worlds/${params.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWorld(data.world);
+      }
+    } catch {
+      // Will show not-found state
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   }, [params.id]);
 
-  /* Simulate generation progress when status is "generating" */
   useEffect(() => {
-    if (!world || world.status !== "generating") return;
+    fetchWorld();
+  }, [fetchWorld]);
 
-    const interval = setInterval(() => {
-      setGenPercent((prev) => {
-        const next = prev + Math.random() * 3 + 0.5;
-        if (next >= 100) {
-          clearInterval(interval);
-          /* In production: poll getOperation API instead */
-          setWorld((w) =>
-            w ? { ...w, status: "ready", viewer_url: "https://marble.worldlabs.ai/viewer/demo" } : w
-          );
-          return 100;
+  // Poll generation status
+  useEffect(() => {
+    if (!world || (world.status !== "generating" && world.status !== "pending")) return;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/generate/status?worldId=${world.id}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (data.status === "ready" && data.world) {
+          setWorld(data.world);
+        } else if (data.status === "failed") {
+          setWorld((w) => w ? { ...w, status: "failed" } : w);
+        } else if (data.progress) {
+          const pct = data.progress.percent;
+          setGenPercent(pct ?? null);
+          if (pct !== null) {
+            const stageIdx = Math.min(
+              Math.floor((pct / 100) * GENERATION_STAGES.length),
+              GENERATION_STAGES.length - 1
+            );
+            setGenStageText(GENERATION_STAGES[stageIdx]);
+          }
         }
-        return next;
-      });
+      } catch {
+        // Retry on next interval
+      }
+    };
 
-      setGenStage((prev) => {
-        const nextStage = Math.min(
-          Math.floor((genPercent / 100) * GENERATION_STAGES.length),
-          GENERATION_STAGES.length - 1
-        );
-        return nextStage;
-      });
-    }, 2000);
-
+    poll();
+    const interval = setInterval(poll, 15000);
     return () => clearInterval(interval);
-  }, [world?.status, genPercent]);
+  }, [world?.id, world?.status]);
 
-  /* Loading state */
+  // Loading
   if (loading) {
     return (
       <div className="flex h-dvh items-center justify-center bg-background">
@@ -183,11 +108,10 @@ export default function WorldViewerPage() {
     );
   }
 
-  /* Generating state */
+  // Generating state
   if (world.status === "generating" || world.status === "pending") {
     return (
       <div className="flex h-dvh flex-col bg-background safe-top safe-bottom">
-        {/* Back button */}
         <header className="flex items-center px-4 pt-3 safe-top">
           <Button
             variant="ghost"
@@ -200,14 +124,13 @@ export default function WorldViewerPage() {
           </Button>
         </header>
 
-        {/* Centered progress */}
         <div className="flex-1 flex flex-col items-center justify-center">
           <GenerationProgress
-            percent={world.status === "generating" ? genPercent : null}
+            percent={genPercent}
             statusText={
               world.status === "pending"
                 ? "Waiting in queue..."
-                : GENERATION_STAGES[genStage] ?? "Processing..."
+                : genStageText
             }
           />
           <h2 className="mt-4 text-lg font-semibold text-foreground text-center px-6">
@@ -218,7 +141,7 @@ export default function WorldViewerPage() {
     );
   }
 
-  /* Failed state */
+  // Failed state
   if (world.status === "failed") {
     return (
       <div className="flex h-dvh flex-col items-center justify-center gap-6 bg-background p-6 safe-top safe-bottom">
@@ -234,11 +157,9 @@ export default function WorldViewerPage() {
           </svg>
         </div>
         <div className="text-center space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">
-            Generation Failed
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground">Generation Failed</h2>
           <p className="text-sm text-muted-foreground max-w-xs">
-            {world.description ?? "Something went wrong while generating this world. Try capturing again with better lighting."}
+            Something went wrong. Try capturing again with better lighting.
           </p>
         </div>
         <div className="flex gap-3">
@@ -253,10 +174,9 @@ export default function WorldViewerPage() {
     );
   }
 
-  /* Ready state -- full-screen viewer */
+  // Ready state — full-screen viewer
   return (
     <div className="relative h-dvh bg-black overflow-hidden">
-      {/* Iframe loading overlay */}
       {!iframeLoaded && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-3">
@@ -266,7 +186,6 @@ export default function WorldViewerPage() {
         </div>
       )}
 
-      {/* 3D World iframe -- full viewport */}
       <iframe
         src={world.viewer_url ?? "about:blank"}
         className="absolute inset-0 h-full w-full border-0"
@@ -276,7 +195,6 @@ export default function WorldViewerPage() {
         title={`3D view of ${world.title}`}
       />
 
-      {/* Back button -- floats over iframe */}
       <div className="absolute top-3 left-4 z-30 safe-top">
         <Button
           variant="ghost"
@@ -289,37 +207,26 @@ export default function WorldViewerPage() {
         </Button>
       </div>
 
-      {/* Fullscreen hint -- top right */}
       <div className="absolute top-3 right-4 z-30 safe-top">
         <div className="flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-sm px-3 py-1.5">
           <Eye className="size-3 text-white/60" aria-hidden="true" />
-          <span className="text-[11px] text-white/60 font-medium">
-            Use WASD to navigate
-          </span>
+          <span className="text-[11px] text-white/60 font-medium">Use WASD to navigate</span>
         </div>
       </div>
 
-      {/* Bottom sheet with world info + actions */}
       <BottomSheet>
         <div className="space-y-4">
-          {/* Title row */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-bold text-foreground truncate">
-                {world.title}
-              </h1>
+              <h1 className="text-lg font-bold text-foreground truncate">{world.title}</h1>
               {world.description && (
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {world.description}
-                </p>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{world.description}</p>
               )}
             </div>
           </div>
 
-          {/* Action buttons */}
           <ShareActions worldId={world.id} title={world.title} />
 
-          {/* Metadata */}
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1 border-t border-border">
             <span>
               Created{" "}

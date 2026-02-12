@@ -84,17 +84,51 @@ export default function CapturePage() {
     startHeadingRef.current = null;
   }, []);
 
-  const handleDone = useCallback(() => {
-    // Store captured photos in sessionStorage for the upload step
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
+
+  const handleDone = useCallback(async () => {
+    setIsUploading(true);
+
     try {
-      sessionStorage.setItem(
-        "space-clone-captures",
-        JSON.stringify(captured)
-      );
-    } catch {
-      // sessionStorage might be full — will handle in upload
+      // 1. Convert data URLs to files and upload
+      setUploadStatus("Uploading photos...");
+      const formData = new FormData();
+      for (let i = 0; i < captured.length; i++) {
+        const res = await fetch(captured[i]);
+        const blob = await res.blob();
+        formData.append("photos", blob, `photo_${String(i).padStart(2, "0")}.jpg`);
+      }
+
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { sessionId } = await uploadRes.json();
+
+      // 2. Trigger stitching
+      setUploadStatus("Stitching panorama...");
+      const stitchRes = await fetch("/api/stitch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (!stitchRes.ok) throw new Error("Stitching failed");
+
+      // 3. Trigger 3D generation
+      setUploadStatus("Starting 3D generation...");
+      const genRes = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, title: "New Space" }),
+      });
+      if (!genRes.ok) throw new Error("Generation failed");
+      const { worldId } = await genRes.json();
+
+      // Navigate to world viewer (will show generation progress)
+      router.push(`/world/${worldId}`);
+    } catch (err) {
+      setUploadStatus(err instanceof Error ? err.message : "Something went wrong");
+      setIsUploading(false);
     }
-    router.push("/gallery");
   }, [router, captured]);
 
   // Auto-scroll thumbnail strip to end
@@ -301,11 +335,25 @@ export default function CapturePage() {
               </div>
               <h2 className="text-xl font-bold text-white">All 16 captured!</h2>
               <p className="text-sm text-white/60">
-                Ready to generate your 3D world
+                {isUploading ? uploadStatus : "Ready to generate your 3D world"}
               </p>
-              <Button size="lg" onClick={handleDone} className="mt-2 gap-2 touch-target">
-                Generate World
-                <ChevronRight className="size-4" />
+              <Button
+                size="lg"
+                onClick={handleDone}
+                disabled={isUploading}
+                className="mt-2 gap-2 touch-target"
+              >
+                {isUploading ? (
+                  <>
+                    <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Generate World
+                    <ChevronRight className="size-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
