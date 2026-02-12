@@ -1,0 +1,381 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Spatial design tokens */
+  --color-space-cyan: var(--space-cyan);
+  --color-space-blue: var(--space-blue);
+  --color-space-purple: var(--space-purple);
+  --color-space-success: var(--space-success);
+  --color-space-warning: var(--space-warning);
+  --color-space-surface: var(--space-surface);
+  --color-space-surface-elevated: var(--space-surface-elevated);
+  --color-space-glow: var(--space-glow);
+}
+
+/* ==========================================================================
+   Light mode -- kept as fallback but this app defaults to .dark via layout
+   ========================================================================== */
+:root {
+  --radius: 0.75rem;
+
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.55 0.2 220);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.96 0.005 220);
+  --secondary-foreground: oklch(0.25 0.02 220);
+  --muted: oklch(0.96 0.005 220);
+  --muted-foreground: oklch(0.5 0.02 220);
+  --accent: oklch(0.96 0.01 220);
+  --accent-foreground: oklch(0.25 0.02 220);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.01 220);
+  --input: oklch(0.9 0.01 220);
+  --ring: oklch(0.55 0.2 220);
+
+  --chart-1: oklch(0.55 0.2 220);
+  --chart-2: oklch(0.6 0.15 185);
+  --chart-3: oklch(0.55 0.18 275);
+  --chart-4: oklch(0.65 0.2 145);
+  --chart-5: oklch(0.6 0.22 40);
+
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.55 0.2 220);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.96 0.01 220);
+  --sidebar-accent-foreground: oklch(0.25 0.02 220);
+  --sidebar-border: oklch(0.9 0.01 220);
+  --sidebar-ring: oklch(0.55 0.2 220);
+
+  /* Spatial tokens -- light */
+  --space-cyan: oklch(0.55 0.18 200);
+  --space-blue: oklch(0.5 0.2 240);
+  --space-purple: oklch(0.5 0.2 290);
+  --space-success: oklch(0.6 0.2 155);
+  --space-warning: oklch(0.7 0.18 75);
+  --space-surface: oklch(0.97 0.005 220);
+  --space-surface-elevated: oklch(1 0 0);
+  --space-glow: oklch(0.55 0.18 200 / 30%);
+}
+
+/* ==========================================================================
+   Dark mode -- the primary palette for Space Clone
+   Deep blacks with electric cyan/blue accents for a spatial/3D feel
+   ========================================================================== */
+.dark {
+  /* Core backgrounds: near-true-black with a slight cold blue tint
+     to evoke the feeling of deep space */
+  --background: oklch(0.09 0.015 260);
+  --foreground: oklch(0.95 0.01 220);
+
+  /* Cards sit one step above background -- faint blue-black glass */
+  --card: oklch(0.13 0.02 260);
+  --card-foreground: oklch(0.95 0.01 220);
+
+  /* Popovers match cards */
+  --popover: oklch(0.13 0.02 260);
+  --popover-foreground: oklch(0.95 0.01 220);
+
+  /* Primary: electric cyan -- the signature accent of the app
+     Contrast ratio ~7.8:1 against --background */
+  --primary: oklch(0.78 0.18 200);
+  --primary-foreground: oklch(0.12 0.02 260);
+
+  /* Secondary: muted blue-grey for less important actions */
+  --secondary: oklch(0.2 0.025 260);
+  --secondary-foreground: oklch(0.88 0.02 220);
+
+  /* Muted: subtle surface for disabled / less prominent areas */
+  --muted: oklch(0.18 0.02 260);
+  --muted-foreground: oklch(0.6 0.03 220);
+
+  /* Accent: slightly brighter than secondary for hover states */
+  --accent: oklch(0.22 0.03 260);
+  --accent-foreground: oklch(0.95 0.01 220);
+
+  /* Destructive: warm red that reads clearly against dark bg */
+  --destructive: oklch(0.65 0.25 25);
+
+  /* Borders: very subtle, using low-opacity white with blue tint */
+  --border: oklch(0.95 0.02 220 / 10%);
+  --input: oklch(0.95 0.02 220 / 12%);
+  --ring: oklch(0.78 0.18 200 / 40%);
+
+  /* Charts: a vibrant spatial palette */
+  --chart-1: oklch(0.78 0.18 200);   /* cyan */
+  --chart-2: oklch(0.7 0.17 260);    /* blue */
+  --chart-3: oklch(0.72 0.19 290);   /* purple */
+  --chart-4: oklch(0.75 0.2 155);    /* green */
+  --chart-5: oklch(0.72 0.22 40);    /* orange */
+
+  /* Sidebar */
+  --sidebar: oklch(0.11 0.018 260);
+  --sidebar-foreground: oklch(0.95 0.01 220);
+  --sidebar-primary: oklch(0.78 0.18 200);
+  --sidebar-primary-foreground: oklch(0.12 0.02 260);
+  --sidebar-accent: oklch(0.2 0.025 260);
+  --sidebar-accent-foreground: oklch(0.95 0.01 220);
+  --sidebar-border: oklch(0.95 0.02 220 / 8%);
+  --sidebar-ring: oklch(0.78 0.18 200 / 40%);
+
+  /* =======================================================================
+     Spatial-specific design tokens
+     These extend beyond shadcn defaults for the 3D/space theme
+     ======================================================================= */
+
+  /* Electric cyan -- main accent for CTAs, active states, progress */
+  --space-cyan: oklch(0.78 0.18 200);
+
+  /* Deep blue -- secondary accent, backgrounds of active elements */
+  --space-blue: oklch(0.55 0.2 250);
+
+  /* Purple -- tertiary for gradients and generating states */
+  --space-purple: oklch(0.6 0.22 290);
+
+  /* Semantic: success green for "ready" worlds */
+  --space-success: oklch(0.72 0.2 155);
+
+  /* Semantic: amber for "generating" / in-progress */
+  --space-warning: oklch(0.78 0.16 75);
+
+  /* Surface layers for glass-like card stacking */
+  --space-surface: oklch(0.14 0.02 260);
+  --space-surface-elevated: oklch(0.18 0.025 260);
+
+  /* Glow: used for box-shadow and subtle light emission effects */
+  --space-glow: oklch(0.78 0.18 200 / 20%);
+}
+
+/* ==========================================================================
+   Base layer
+   ========================================================================== */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Prevent overscroll bounce on iOS for immersive feel */
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Smooth page transitions */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ==========================================================================
+   Custom animations for spatial UI
+   ========================================================================== */
+@keyframes space-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes space-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px 0 var(--space-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px var(--space-glow);
+  }
+}
+
+@keyframes space-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes space-orbit {
+  from {
+    transform: rotate(0deg) translateX(40px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(40px) rotate(-360deg);
+  }
+}
+
+@keyframes space-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes space-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes space-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes space-progress-ring {
+  0% {
+    stroke-dashoffset: 283;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ==========================================================================
+   Utility classes for spatial design
+   ========================================================================== */
+@layer utilities {
+  .animate-space-pulse {
+    animation: space-pulse 2s ease-in-out infinite;
+  }
+  .animate-space-glow {
+    animation: space-glow 2s ease-in-out infinite;
+  }
+  .animate-space-spin-slow {
+    animation: space-spin-slow 8s linear infinite;
+  }
+  .animate-space-orbit {
+    animation: space-orbit 4s linear infinite;
+  }
+  .animate-space-fade-in {
+    animation: space-fade-in 0.3s ease-out;
+  }
+  .animate-space-slide-up {
+    animation: space-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .animate-space-scale-in {
+    animation: space-scale-in 0.2s ease-out;
+  }
+
+  /* Glassmorphism surface */
+  .glass-surface {
+    background: oklch(0.14 0.02 260 / 60%);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid oklch(0.95 0.02 220 / 8%);
+  }
+
+  /* Glow ring for active/focused elements */
+  .glow-ring {
+    box-shadow: 0 0 0 1px var(--space-glow),
+                0 0 12px 0 var(--space-glow);
+  }
+
+  /* Gradient text for headings */
+  .text-gradient-space {
+    background: linear-gradient(135deg,
+      oklch(0.78 0.18 200),
+      oklch(0.7 0.17 260),
+      oklch(0.72 0.19 290)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Safe area padding for PWA */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .safe-right {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Touch-friendly minimum target */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Hide scrollbar but keep scrolling */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

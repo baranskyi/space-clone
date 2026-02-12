@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# Next.js
+web/.next/
+web/out/
+
+# Build
+web/public/sw.js
+web/public/sw.js.map
+web/public/swe-worker-*.js
+web/public/workbox-*.js
+
+# Environment
+.env
+.env.local
+.env.*.local
+web/.env
+web/.env.local
+
+# Python
+stitch-service/__pycache__/
+stitch-service/*.pyc
+stitch-service/.venv/
+stitch-service/venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

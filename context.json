@@ -1,0 +1,15 @@
+{
+  "project_name": "Space Clone",
+  "created_at": "2026-02-12T00:00:00Z",
+  "stack": "Next.js 15 + React 19 + TypeScript + Tailwind + Supabase",
+  "scope": "full",
+  "need_database": true,
+  "need_ui": true,
+  "need_deploy": true,
+  "need_payments": false,
+  "deploy_target": "railway",
+  "database": "supabase",
+  "apis": ["world-labs-marble-v1", "supabase-auth", "supabase-storage"],
+  "status": "active",
+  "current_step": 0
+}
