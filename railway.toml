@@ -1,12 +1,8 @@
-# Root-level config for the web service
-# For stitch-service, create a separate Railway service with Root Directory = "stitch-service"
-
 [build]
-builder = "NIXPACKS"
-buildCommand = "cd web && npm ci && npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "cd web && npm start"
 healthcheckPath = "/"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
