@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.3",
+  "checkpoint_id": "002e3b5aef7e",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Dockerfile",
+    "railway.toml",
+    "web/next.config.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/00/2e3b5aef7e/0/metadata.json",
+      "transcript": "/00/2e3b5aef7e/0/full.jsonl",
+      "context": "/00/2e3b5aef7e/0/context.md",
+      "content_hash": "/00/2e3b5aef7e/0/content_hash.txt",
+      "prompt": "/00/2e3b5aef7e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 11,
+    "cache_creation_tokens": 135310,
+    "cache_read_tokens": 1068689,
+    "output_tokens": 751,
+    "api_call_count": 9
+  }
+}

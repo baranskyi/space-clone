@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.3",
+  "checkpoint_id": "002e3b5aef7e",
+  "session_id": "146d27f6-64e5-4b2b-b170-cba7085a9c28",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T09:40:07.312382289Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Dockerfile",
+    "railway.toml",
+    "web/next.config.ts"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "55a17af4-bd1d-4380-aa53-6ab850e7fcaa",
+  "checkpoint_transcript_start": 1232,
+  "transcript_lines_at_start": 1232,
+  "token_usage": {
+    "input_tokens": 11,
+    "cache_creation_tokens": 135310,
+    "cache_read_tokens": 1068689,
+    "output_tokens": 751,
+    "api_call_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T09:40:06.582117767Z",
+    "agent_lines": 35,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 35,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-home-m0sthatedman-Personal-Super-Agent/146d27f6-64e5-4b2b-b170-cba7085a9c28.jsonl"
+}
