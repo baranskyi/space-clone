@@ -1,0 +1,16 @@
+# Nixpacks config for monorepo — web service
+# Explicitly specify Node.js since package.json is in web/ subdirectory
+
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm"]
+
+[phases.install]
+cmds = ["cd web && npm ci"]
+
+[phases.build]
+cmds = ["cd web && npm run build"]
+
+[start]
+cmd = "cd web && npm start"
