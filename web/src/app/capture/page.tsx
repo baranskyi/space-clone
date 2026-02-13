@@ -92,9 +92,21 @@ export default function CapturePage() {
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  /** Extract error message from a failed API response. */
+  async function apiError(res: Response, fallback: string): Promise<string> {
+    try {
+      const body = await res.json();
+      return body.error || `${fallback} (${res.status})`;
+    } catch {
+      return `${fallback} (${res.status})`;
+    }
+  }
 
   const handleDone = useCallback(async () => {
     setIsUploading(true);
+    setUploadError(null);
     try {
       setUploadStatus("Uploading photos...");
       const formData = new FormData();
@@ -120,7 +132,7 @@ export default function CapturePage() {
       formData.append("positions", JSON.stringify(positionMeta));
 
       const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      if (!uploadRes.ok) throw new Error("Upload failed");
+      if (!uploadRes.ok) throw new Error(await apiError(uploadRes, "Upload failed"));
       const { sessionId } = await uploadRes.json();
 
       setUploadStatus("Stitching panorama...");
@@ -129,7 +141,7 @@ export default function CapturePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId }),
       });
-      if (!stitchRes.ok) throw new Error("Stitching failed");
+      if (!stitchRes.ok) throw new Error(await apiError(stitchRes, "Stitching failed"));
 
       setUploadStatus("Starting 3D generation...");
       const genRes = await fetch("/api/generate", {
@@ -137,12 +149,12 @@ export default function CapturePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, title: "New Space" }),
       });
-      if (!genRes.ok) throw new Error("Generation failed");
+      if (!genRes.ok) throw new Error(await apiError(genRes, "Generation failed"));
       const { worldId } = await genRes.json();
 
       router.push(`/world/${worldId}`);
     } catch (err) {
-      setUploadStatus(err instanceof Error ? err.message : "Something went wrong");
+      setUploadError(err instanceof Error ? err.message : "Something went wrong");
       setIsUploading(false);
     }
   }, [router, capturedMap]);
@@ -298,23 +310,43 @@ export default function CapturePage() {
         {/* ─── Completion overlay ─────────────────────────────────── */}
         {isComplete && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-space-fade-in z-20">
-            <div className="space-y-4 text-center px-6">
-              <div className="inline-flex size-16 items-center justify-center rounded-full bg-space-success/20 border border-space-success/30">
-                <svg
-                  className="size-8 text-space-success"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-bold text-white">All {TOTAL_POSITIONS} captured!</h2>
+            <div className="space-y-4 text-center px-6 max-w-sm">
+              {uploadError ? (
+                <div className="inline-flex size-16 items-center justify-center rounded-full bg-destructive/20 border border-destructive/30">
+                  <AlertCircle className="size-8 text-destructive" />
+                </div>
+              ) : (
+                <div className="inline-flex size-16 items-center justify-center rounded-full bg-space-success/20 border border-space-success/30">
+                  <svg
+                    className="size-8 text-space-success"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+              <h2 className="text-xl font-bold text-white">
+                {uploadError ? "Something went wrong" : `All ${TOTAL_POSITIONS} captured!`}
+              </h2>
+
+              {uploadError && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-2.5">
+                  <p className="text-sm text-red-300 break-words">{uploadError}</p>
+                </div>
+              )}
+
               <p className="text-sm text-white/60">
-                {isUploading ? uploadStatus : "Ready to generate your 3D world"}
+                {isUploading
+                  ? uploadStatus
+                  : uploadError
+                    ? "Check connection and try again"
+                    : "Ready to generate your 3D world"}
               </p>
+
               <Button
                 size="lg"
                 onClick={handleDone}
@@ -325,6 +357,11 @@ export default function CapturePage() {
                   <>
                     <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                     Processing...
+                  </>
+                ) : uploadError ? (
+                  <>
+                    <RotateCcw className="size-4" />
+                    Retry
                   </>
                 ) : (
                   <>
