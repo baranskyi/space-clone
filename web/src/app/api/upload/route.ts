@@ -16,9 +16,9 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const files = formData.getAll("photos") as File[];
 
-  if (files.length < 2 || files.length > 20) {
+  if (files.length < 2 || files.length > 30) {
     return NextResponse.json(
-      { error: `Expected 2-20 photos, got ${files.length}` },
+      { error: `Expected 2-30 photos, got ${files.length}` },
       { status: 400 }
     );
   }
