@@ -3,21 +3,16 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { SphereGuide } from "@/components/capture/sphere-guide";
+import { CaptureGrid } from "@/components/capture/capture-grid";
 import { useCamera } from "@/hooks/use-camera";
 import { useDeviceOrientation } from "@/hooks/use-device-orientation";
-import { X, ChevronRight, RotateCcw, Camera, AlertCircle, ChevronUp, ChevronDown } from "lucide-react";
+import { X, ChevronRight, RotateCcw, Camera, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   CAPTURE_POSITIONS,
   TOTAL_POSITIONS,
-  RING_INFO,
   isAlignedWithPosition,
   getNextUncaptured,
-  getDirectionLabel,
-  getPitchGuidance,
-  getRingProgress,
-  getAdjacentPositions,
   type AlignmentResult,
 } from "@/lib/capture-positions";
 
@@ -35,6 +30,13 @@ export default function CapturePage() {
   const capturedSet = useMemo(() => new Set(capturedMap.keys()), [capturedMap]);
   const capturedCount = capturedSet.size;
   const isComplete = capturedCount >= TOTAL_POSITIONS;
+
+  // Anchor grid to initial facing direction as soon as gyro activates
+  useEffect(() => {
+    if (startHeadingRef.current === null && heading !== null) {
+      startHeadingRef.current = heading;
+    }
+  }, [heading]);
 
   // Smart ordering: suggest next position based on proximity
   const activeIndex = useMemo(() => {
@@ -55,12 +57,7 @@ export default function CapturePage() {
     return isAlignedWithPosition(heading, pitch, activeIndex, startHeadingRef.current);
   }, [heading, pitch, activeIndex]);
 
-  const activePos = activeIndex !== null ? CAPTURE_POSITIONS[activeIndex] : null;
-
-  // Ring progress for active position
-  const ringProgress = useMemo(() => getRingProgress(capturedSet), [capturedSet]);
-
-  // Record starting heading on first capture
+  // Record starting heading on first capture (safety net)
   const ensureStartHeading = useCallback(() => {
     if (startHeadingRef.current === null && heading !== null) {
       startHeadingRef.current = heading;
@@ -158,31 +155,6 @@ export default function CapturePage() {
     }
   }, [capturedCount]);
 
-  // Overlap preview: check if any adjacent captured position is nearby
-  const overlapEdge = useMemo(() => {
-    if (activeIndex === null || heading === null || pitch === null || startHeadingRef.current === null) return null;
-    const neighbors = getAdjacentPositions(activeIndex);
-    for (const nIdx of neighbors) {
-      if (!capturedSet.has(nIdx)) continue;
-      const nPos = CAPTURE_POSITIONS[nIdx];
-      const aPos = CAPTURE_POSITIONS[activeIndex];
-      // Determine edge direction
-      const nTargetH = (startHeadingRef.current + nPos.heading) % 360;
-      const aTargetH = (startHeadingRef.current + aPos.heading) % 360;
-      let hDiff = nTargetH - aTargetH;
-      if (hDiff > 180) hDiff -= 360;
-      if (hDiff < -180) hDiff += 360;
-      const pDiff = nPos.pitch - aPos.pitch;
-
-      if (Math.abs(hDiff) > Math.abs(pDiff)) {
-        return { edge: hDiff > 0 ? "right" as const : "left" as const, dataUrl: capturedMap.get(nIdx)! };
-      } else {
-        return { edge: pDiff > 0 ? "top" as const : "bottom" as const, dataUrl: capturedMap.get(nIdx)! };
-      }
-    }
-    return null;
-  }, [activeIndex, heading, pitch, capturedSet, capturedMap]);
-
   // Camera error
   if (cameraError) {
     return (
@@ -264,19 +236,21 @@ export default function CapturePage() {
           </div>
         )}
 
-        {/* Grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          aria-hidden="true"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--space-cyan) 1px, transparent 1px), linear-gradient(90deg, var(--space-cyan) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
+        {/* AR wireframe grid overlay */}
+        <CaptureGrid
+          capturedSet={capturedSet}
+          activeIndex={activeIndex}
+          cameraHeading={heading ?? 0}
+          cameraPitch={pitch ?? 0}
+          startHeading={startHeadingRef.current ?? 0}
         />
 
-        {/* Center crosshair — cyan only when BOTH heading and pitch aligned */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+        {/* Center crosshair */}
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{ zIndex: 10 }}
+          aria-hidden="true"
+        >
           <div className="relative size-16">
             <div className="absolute top-1/2 left-0 w-full h-px bg-white/20" />
             <div className="absolute left-1/2 top-0 h-full w-px bg-white/20" />
@@ -287,73 +261,16 @@ export default function CapturePage() {
           </div>
         </div>
 
-        {/* Alignment ring */}
+        {/* Alignment ring — border glow when aligned */}
         {isTracking && !isComplete && (
           <div
             className={cn(
               "absolute inset-0 pointer-events-none transition-opacity duration-300 border-2 rounded-none",
               alignment.aligned ? "opacity-100 border-space-cyan/40" : "opacity-0 border-transparent"
             )}
+            style={{ zIndex: 10 }}
             aria-hidden="true"
           />
-        )}
-
-        {/* ─── Overlap preview strip ─────────────────────────── */}
-        {overlapEdge && (
-          <div
-            className={cn(
-              "absolute pointer-events-none z-10",
-              overlapEdge.edge === "left" && "left-0 top-0 bottom-0 w-[20%]",
-              overlapEdge.edge === "right" && "right-0 top-0 bottom-0 w-[20%]",
-              overlapEdge.edge === "top" && "top-0 left-0 right-0 h-[20%]",
-              overlapEdge.edge === "bottom" && "bottom-0 left-0 right-0 h-[20%]",
-            )}
-            aria-hidden="true"
-          >
-            <img
-              src={overlapEdge.dataUrl}
-              alt=""
-              className="size-full object-cover opacity-30"
-              style={{
-                // Show the matching edge of the neighbor photo
-                objectPosition:
-                  overlapEdge.edge === "left" ? "right center"
-                    : overlapEdge.edge === "right" ? "left center"
-                    : overlapEdge.edge === "top" ? "center bottom"
-                    : "center top",
-              }}
-            />
-            {/* Fade gradient */}
-            <div className={cn(
-              "absolute inset-0",
-              overlapEdge.edge === "left" && "bg-gradient-to-l from-transparent to-black/60",
-              overlapEdge.edge === "right" && "bg-gradient-to-r from-transparent to-black/60",
-              overlapEdge.edge === "top" && "bg-gradient-to-t from-transparent to-black/60",
-              overlapEdge.edge === "bottom" && "bg-gradient-to-b from-transparent to-black/60",
-            )} />
-          </div>
-        )}
-
-        {/* ─── 3D Sphere Guide (top-left) ────────────────────── */}
-        <div className="absolute top-12 left-3 z-20 safe-top">
-          <SphereGuide
-            capturedSet={capturedSet}
-            activeIndex={activeIndex}
-            currentHeading={heading ?? 0}
-            currentPitch={pitch ?? 0}
-            startHeading={startHeadingRef.current ?? 0}
-            size={110}
-          />
-        </div>
-
-        {/* ─── Pitch gauge (right side) ──────────────────────── */}
-        {isTracking && !isComplete && activePos && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1">
-            <PitchGauge
-              currentPitch={pitch ?? 0}
-              targetPitch={activePos.pitch}
-            />
-          </div>
         )}
 
         {/* Heading/pitch debug */}
@@ -378,53 +295,7 @@ export default function CapturePage() {
           </div>
         )}
 
-        {/* ─── Direction guidance ─────────────────────────────── */}
-        {!isComplete && isReady && activePos && (
-          <div className="absolute bottom-32 inset-x-0 flex flex-col items-center gap-2 animate-space-fade-in">
-            {/* Ring info */}
-            <div className="rounded-full bg-black/40 backdrop-blur-sm px-3 py-1">
-              <span className="text-[10px] font-medium text-white/50">
-                {RING_INFO[activePos.ring].label}
-                {" "}({ringProgress[activePos.ring].done}/{ringProgress[activePos.ring].total})
-              </span>
-            </div>
-
-            {/* Direction label */}
-            <div className="flex items-center gap-2 rounded-full bg-black/50 backdrop-blur-sm px-4 py-2">
-              <span className="text-xs font-medium text-white/80">
-                {activePos.pitch > 30 ? "↑" : activePos.pitch < -30 ? "↓" : "→"}
-              </span>
-              <span className={cn(
-                "text-xs font-semibold transition-colors duration-200",
-                alignment.aligned ? "text-space-success" : "text-space-cyan"
-              )}>
-                {getDirectionLabel(activeIndex!)}
-              </span>
-            </div>
-
-            {/* Alignment indicators */}
-            <div className="flex gap-3">
-              <span className={cn(
-                "text-[10px] font-mono px-2 py-0.5 rounded-full",
-                alignment.headingAligned
-                  ? "bg-space-cyan/20 text-space-cyan"
-                  : "bg-white/5 text-white/30"
-              )}>
-                H {alignment.headingAligned ? "OK" : `${Math.round(alignment.headingDelta)}°`}
-              </span>
-              <span className={cn(
-                "text-[10px] font-mono px-2 py-0.5 rounded-full",
-                alignment.pitchAligned
-                  ? "bg-space-cyan/20 text-space-cyan"
-                  : "bg-white/5 text-white/30"
-              )}>
-                P {alignment.pitchAligned ? "OK" : `${Math.round(alignment.pitchDelta)}°`}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* ─── Completion overlay ─────────────────────────────── */}
+        {/* ─── Completion overlay ─────────────────────────────────── */}
         {isComplete && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-space-fade-in z-20">
             <div className="space-y-4 text-center px-6">
@@ -467,7 +338,7 @@ export default function CapturePage() {
         )}
       </div>
 
-      {/* ─── Bottom controls ───────────────────────────────────── */}
+      {/* ─── Bottom controls ───────────────────────────────────────── */}
       <div className="relative z-30 bg-gradient-to-t from-black via-black/95 to-transparent pt-6 pb-4 px-4 safe-bottom">
         {/* Thumbnail strip */}
         {capturedCount > 0 && (
@@ -536,58 +407,6 @@ export default function CapturePage() {
             </button>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ── Pitch Gauge component ─────────────────────────────────────────────
-
-function PitchGauge({ currentPitch, targetPitch }: { currentPitch: number; targetPitch: number }) {
-  const gaugeH = 140;
-  // Normalize -90..+90 → 0..1
-  const currentNorm = (currentPitch + 90) / 180;
-  const targetNorm = (targetPitch + 90) / 180;
-  const currentY = (1 - currentNorm) * gaugeH;
-  const targetY = (1 - targetNorm) * gaugeH;
-  const diff = Math.abs(currentPitch - targetPitch);
-  const isClose = diff <= 15;
-
-  return (
-    <div className="relative flex flex-col items-center" style={{ height: gaugeH }}>
-      {/* Arrow hint */}
-      {!isClose && currentPitch < targetPitch && (
-        <ChevronUp className="size-3 text-space-cyan animate-bounce absolute -top-4" />
-      )}
-
-      {/* Gauge track */}
-      <div className="w-1.5 h-full rounded-full bg-white/10 relative overflow-hidden">
-        {/* Target zone */}
-        <div
-          className="absolute left-0 w-full bg-space-cyan/20 rounded-full"
-          style={{
-            top: Math.max(0, targetY - 10),
-            height: 20,
-          }}
-        />
-        {/* Current position indicator */}
-        <div
-          className={cn(
-            "absolute left-1/2 -translate-x-1/2 size-3 rounded-full transition-colors duration-200",
-            isClose ? "bg-space-cyan shadow-[0_0_6px_rgba(0,229,255,0.5)]" : "bg-white/60"
-          )}
-          style={{ top: currentY - 6 }}
-        />
-      </div>
-
-      {/* Arrow hint */}
-      {!isClose && currentPitch > targetPitch && (
-        <ChevronDown className="size-3 text-space-cyan animate-bounce absolute -bottom-4" />
-      )}
-
-      {/* Label */}
-      <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap">
-        <span className="text-[8px] font-mono text-white/30 uppercase tracking-wider">pitch</span>
       </div>
     </div>
   );
